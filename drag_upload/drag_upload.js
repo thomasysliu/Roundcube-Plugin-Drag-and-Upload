@@ -78,7 +78,20 @@ if (window.rcmail) {
 						builder += crlf;
 
 						/* Append binary data. */
-						builder += file.getAsBinary();
+						if(!bw.chrome){
+							builder += file.getAsBinary();
+						}else{
+							//builder += file.readAsBinary();
+							var reader = new FileReader();
+							reader.onload = function(e) {
+								
+								
+								//sendBinaryBlob(e.target.result)
+								
+								
+								}
+							reader.readAsBinaryString(file);
+						}
 						builder += crlf;
 
 						/* Write boundary. */
@@ -94,8 +107,13 @@ if (window.rcmail) {
 					builder += crlf;
 					xhr.open("POST", action, true);
 					xhr.setRequestHeader('content-type', 'multipart/form-data; boundary=' + boundary);
-					xhr.sendAsBinary(builder);
-
+					
+					if(!bw.chrome){
+						xhr.sendAsBinary(builder);
+					}else{
+						xhr.send(builder);
+					}
+					
 					xhr.onload = function(event) {
 						var d, content = '';
 						try {

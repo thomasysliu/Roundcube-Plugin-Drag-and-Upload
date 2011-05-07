@@ -22,49 +22,56 @@ if (window.rcmail) {
 
 				function createInstance()
 				{
-					if (window.XMLHttpRequest)
-					{
-						req = new XMLHttpRequest();
-					}
-					else
-						rcmail.display_message(rcmail.get_label('fileuploaderror'), 'error');
-					return(req);
+				if (window.XMLHttpRequest)
+				{
+					req = new XMLHttpRequest();
+				}
+				else
+					rcmail.display_message(rcmail.get_label('fileuploaderror'), 'error');
+				return(req);
 				};
 
-				function upload(event) {
-					event.stopPropagation();
-					event.preventDefault();
-					$('#compose-attachments').css("background-color", "#fff");
-					var data = event.dataTransfer;
-					var ts = new Date().getTime(),
-					    frame_name = 'rcmupload'+ts;
+			function upload(event) {
+				event.stopPropagation();
+				event.preventDefault();
+				$('#compose-attachments').css("background-color", "#fff");
+				var data = event.dataTransfer;
 
-					var action = rcmail.url("upload", { _id:rcmail.env.compose_id||'', _uploadid:ts });
+				for (var i = 0; i < data.files.length; i++) {
 
-					var boundary = '------multipartformboundary' + (new Date).getTime();
-					var dashdash = '--';
-					var crlf     = '\r\n';
+					/* Append binary data. */
+					if(!bw.chrome){
 
-					/* Build RFC2388 string. */
-					var builder = '';
 
-					builder += dashdash;
-					builder += boundary;
-					builder += crlf;
-					var xhr = createInstance();
-					/* Generate token. */
-					builder += 'Content-Disposition: form-data; name="_token"';
-					builder += crlf;
-					builder += crlf;
-					builder += document.getElementsByName("_token")[0].value;
-					builder += crlf;
+						var ts = new Date().getTime(),
+						    frame_name = 'rcmupload'+ts;
 
-					/* Write boundary. */
-					builder += dashdash;
-					builder += boundary;
-					builder += crlf;
+						var action = rcmail.url("upload", { _id:rcmail.env.compose_id||'', _uploadid:ts });
 
-					for (var i = 0; i < data.files.length; i++) {
+						var boundary = '------multipartformboundary' + (new Date).getTime();
+						var dashdash = '--';
+						var crlf     = '\r\n';
+
+						/* Build RFC2388 string. */
+						var builder = '';
+
+						builder += dashdash;
+						builder += boundary;
+						builder += crlf;
+						var xhr = createInstance();
+						/* Generate token. */
+						builder += 'Content-Disposition: form-data; name="_token"';
+						builder += crlf;
+						builder += crlf;
+						builder += document.getElementsByName("_token")[0].value;
+						builder += crlf;
+
+						/* Write boundary. */
+						builder += dashdash;
+						builder += boundary;
+						builder += crlf;
+
+
 						var file = data.files[i];
 						document.getElementsByName("_attachments[]")[0].files[i]=file;
 						/* Generate headers. */
@@ -76,48 +83,152 @@ if (window.rcmail) {
 						builder += 'Content-Type: application/octet-stream';
 						builder += crlf;
 						builder += crlf;
-
-						/* Append binary data. */
-						if(!bw.chrome){
-							builder += file.getAsBinary();
-						}else{
-							//builder += file.readAsBinary();
-							var reader = new FileReader();
-							reader.onload = function(e) {
-								
-								
-								//sendBinaryBlob(e.target.result)
-								
-								
-								}
-							reader.readAsBinaryString(file);
-						}
+						builder += file.getAsBinary();
 						builder += crlf;
 
 						/* Write boundary. */
 						builder += dashdash;
 						builder += boundary;
 						builder += crlf;
+
+						/* Mark end of the request. */
+						builder += dashdash;
+						builder += boundary;
+						builder += dashdash;
+						builder += crlf;
+						xhr.open("POST", action, true);
+						xhr.setRequestHeader('content-type', 'multipart/form-data; boundary=' + boundary);
+
+						xhr.onload = upload_finish;
+						xhr.sendAsBinary(builder);
+
+
+
+						var files=data.files;
+						var content = rcmail.get_label('uploading' + (files > 1 ? 'many' : '')),
+						    ts = frame_name.replace(/^rcmupload/, '');
+
+						if (rcmail.env.loadingicon)
+							content = '<img src="'+rcmail.env.loadingicon+'" alt="" />'+content;
+						if (rcmail.env.cancelicon)
+							content = '<a title="'+rcmail.get_label('cancel')+'" onclick="return this.cancel_attachment_upload(\''+ts+'\', \''+frame_name+'\');" href="#cancelupload"><img src="'+rcmail.env.cancelicon+'" alt="" /></a>'+content;
+						rcmail.add2attachment_list(ts, { name:'', html:content, complete:false });
+
+
+
+
+					}else{
+						//builder += file.readAsBinary();
+						var reader = new FileReader();
+						reader.data = data;
+						reader.file = data.files[i];
+						var file = data.files[i];
+						reader.onload = function(e) {
+
+							var ts = new Date().getTime(),
+							    frame_name = 'rcmupload'+ts;
+
+							var action = rcmail.url("upload", { _id:rcmail.env.compose_id||'', _uploadid:ts });
+
+							var boundary = '------multipartformboundary' + (new Date).getTime();
+							var dashdash = '--';
+							var crlf     = '\r\n';
+
+							/* Build RFC2388 string. */
+							var builder = '';
+
+							builder += dashdash;
+							builder += boundary;
+							builder += crlf;
+							var xhr = createInstance();
+							/* Generate token. */
+							builder += 'Content-Disposition: form-data; name="_token"';
+							builder += crlf;
+							builder += crlf;
+							builder += document.getElementsByName("_token")[0].value;
+							builder += crlf;
+
+							/* Write boundary. */
+							builder += dashdash;
+							builder += boundary;
+							builder += crlf;
+
+
+							var file = this.file;
+							//document.getElementsByName("_attachments[]")[0].files[i]=file;
+							/* Generate headers. */
+							builder += 'Content-Disposition: form-data; name="_attachments[]"';
+							//this.controller.files[0]
+							if (file.fileName) {
+								builder += '; filename="' + file.fileName + '"';
+							}
+							builder += crlf;
+							builder += 'Content-Type: application/octet-stream';
+							builder += crlf;
+							builder += crlf;
+							builder += e.target.result;
+							builder += crlf;
+
+							/* Write boundary. */
+							builder += dashdash;
+							builder += boundary;
+							builder += crlf;
+
+							/* Mark end of the request. */
+							builder += dashdash;
+							builder += boundary;
+							builder += dashdash;
+							builder += crlf;
+							xhr.open("POST", action, true);
+							xhr.setRequestHeader('content-type', 'multipart/form-data; boundary=' + boundary);
+
+							xhr.onload = upload_finish;
+							/* sendAsBinary for Google Chrome. */
+							xhr.sendAsBinary = function(datastr) {
+								var bb = new BlobBuilder();
+								var data = new ArrayBuffer(1);
+								var ui8a = new Uint8Array(data, 0);
+								for (var i in datastr) {
+									if (datastr.hasOwnProperty(i)) {
+										var chr = datastr[i];
+										var charcode = chr.charCodeAt(0)
+											var lowbyte = (charcode & 0xff)
+											ui8a[0] = lowbyte;
+										bb.append(data);
+									}
+								}
+								var blob = bb.getBlob();
+								this.send(blob);
+							}
+
+							xhr.sendAsBinary(builder);
+
+
+
+							var files=data.files;
+							var content = rcmail.get_label('uploading' + (files > 1 ? 'many' : '')),
+							    ts = frame_name.replace(/^rcmupload/, '');
+
+							if (rcmail.env.loadingicon)
+								content = '<img src="'+rcmail.env.loadingicon+'" alt="" />'+content;
+							if (rcmail.env.cancelicon)
+								content = '<a title="'+rcmail.get_label('cancel')+'" onclick="return this.cancel_attachment_upload(\''+ts+'\', \''+frame_name+'\');" href="#cancelupload"><img src="'+rcmail.env.cancelicon+'" alt="" /></a>'+content;
+							rcmail.add2attachment_list(ts, { name:'', html:content, complete:false });
+
+
+
+
+						}
+
+						reader.readAsBinaryString(file);
 					}
 
-					/* Mark end of the request. */
-					builder += dashdash;
-					builder += boundary;
-					builder += dashdash;
-					builder += crlf;
-					xhr.open("POST", action, true);
-					xhr.setRequestHeader('content-type', 'multipart/form-data; boundary=' + boundary);
-					
-					if(!bw.chrome){
-						xhr.sendAsBinary(builder);
-					}else{
-						xhr.send(builder);
-					}
-					
-					xhr.onload = function(event) {
-						var d, content = '';
-						try {
-							content = xhr.responseText;
+				}
+
+				function upload_finish(event) {
+					var d, content = '';
+					try {
+						content = this.responseText;
 
 						if (!content.match(/add2attachment/) ) {
 							if (!content.match(/display_message/))
@@ -149,24 +260,15 @@ if (window.rcmail) {
 						doc.writeln(content);
 						doc.close();
 
-						} catch (err) {}
+					} catch (err) {}
 
-					};
+				};
 
-					var files=data.files;
-					var content = rcmail.get_label('uploading' + (files > 1 ? 'many' : '')),
-					    ts = frame_name.replace(/^rcmupload/, '');
 
-					if (rcmail.env.loadingicon)
-						content = '<img src="'+rcmail.env.loadingicon+'" alt="" />'+content;
-					if (rcmail.env.cancelicon)
-						content = '<a title="'+rcmail.get_label('cancel')+'" onclick="return this.cancel_attachment_upload(\''+ts+'\', \''+frame_name+'\');" href="#cancelupload"><img src="'+rcmail.env.cancelicon+'" alt="" /></a>'+content;
-					rcmail.add2attachment_list(ts, { name:'', html:content, complete:false });
+				/* Prevent FireFox opening the dragged file. */
+				event.stopPropagation();
 
-					/* Prevent FireFox opening the dragged file. */
-					event.stopPropagation();
-
-				}
+			}
 
 			});
 	})

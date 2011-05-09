@@ -77,7 +77,7 @@ if (window.rcmail) {
 						/* Generate headers. */
 						builder += 'Content-Disposition: form-data; name="_attachments[]"';
 						if (file.fileName) {
-							builder += '; filename="' + file.fileName + '"';
+							builder += '; filename="' + unescape(encodeURIComponent(file.fileName)) + '"';
 						}
 						builder += crlf;
 						builder += 'Content-Type: application/octet-stream';
@@ -160,7 +160,7 @@ if (window.rcmail) {
 							builder += 'Content-Disposition: form-data; name="_attachments[]"';
 							//this.controller.files[0]
 							if (file.fileName) {
-								builder += '; filename="' + file.fileName + '"';
+								builder += '; filename="' + unescape(encodeURIComponent(file.fileName)) + '"';
 							}
 							builder += crlf;
 							builder += 'Content-Type: application/octet-stream';

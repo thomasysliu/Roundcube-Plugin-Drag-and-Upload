@@ -185,6 +185,8 @@ if (window.rcmail) {
 							xhr.onload = upload_finish;
 							/* sendAsBinary for Google Chrome. */
 							xhr.sendAsBinary = function(datastr) {
+								if (!window.BlobBuilder && window.WebKitBlobBuilder)
+									window.BlobBuilder = window.WebKitBlobBuilder;
 								var bb = new BlobBuilder();
 								var data = new ArrayBuffer(1);
 								var ui8a = new Uint8Array(data, 0);
